@@ -60,6 +60,7 @@ fi
 exec ./convex-local-backend "$@" \
     --instance-name "$INSTANCE_NAME" \
     --instance-secret "$INSTANCE_SECRET" \
+    --interface :: \
     --port 3210 \
     --site-proxy-port 3211 \
     --convex-origin "$CONVEX_CLOUD_ORIGIN" \

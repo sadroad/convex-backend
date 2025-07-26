@@ -756,7 +756,10 @@ where
 {
     // Set SO_REUSEADDR and a bounded TCP accept backlog for our server's listening
     // socket.
-    let socket = TcpSocket::new_v4()?;
+    let socket = match addr {
+        SocketAddr::V4(_) => TcpSocket::new_v4()?,
+        SocketAddr::V6(_) => TcpSocket::new_v6()?,
+    };
     socket.set_reuseaddr(true)?;
     // Set TCP_NODELAY on accepted connections.
     socket.set_nodelay(true)?;

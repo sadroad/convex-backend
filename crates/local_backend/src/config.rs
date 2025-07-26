@@ -1,4 +1,10 @@
-use std::fmt;
+use std::{
+    fmt,
+    net::{
+        IpAddr,
+        SocketAddr,
+    },
+};
 
 use clap::Parser;
 use clusters::DbDriverTag;
@@ -28,9 +34,9 @@ pub struct LocalConfig {
     #[clap(short, long, value_enum, default_value_t = DbDriverTag::Sqlite)]
     pub db: DbDriverTag,
 
-    /// Host interface to bind to
+    /// Host interface to bind to (supports both IPv4 and IPv6)
     #[clap(short, long, default_value = "0.0.0.0")]
-    pub interface: ::std::net::Ipv4Addr,
+    pub interface: IpAddr,
 
     /// Host port daemon should bind to
     #[clap(short, long, default_value = "3210")]
@@ -140,16 +146,16 @@ impl fmt::Debug for LocalConfig {
 }
 
 impl LocalConfig {
-    pub fn http_bind_address(&self) -> ([u8; 4], u16) {
-        (self.interface.octets(), self.port)
+    pub fn http_bind_address(&self) -> SocketAddr {
+        SocketAddr::new(self.interface, self.port)
     }
 
     pub fn site_forward_prefix(&self) -> String {
         format!("http://127.0.0.1:{}/http", self.port)
     }
 
-    pub fn site_bind_address(&self) -> Option<([u8; 4], u16)> {
-        Some((self.interface.octets(), self.site_proxy_port))
+    pub fn site_bind_address(&self) -> Option<SocketAddr> {
+        Some(SocketAddr::new(self.interface, self.site_proxy_port))
     }
 
     pub fn convex_origin_url(&self) -> anyhow::Result<ConvexOrigin> {
