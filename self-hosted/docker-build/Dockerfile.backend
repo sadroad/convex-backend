@@ -64,12 +64,12 @@ RUN npm ci --prefix scripts/
 ENV RUSH_BUILD_CACHE_ENABLED=0
 COPY npm-packages ./npm-packages
 COPY Justfile ./
-RUN --mount=type=cache,target=/convex/npm-packages/common/temp/,sharing=locked just rush install
+RUN just rush install
 
 COPY --from=chef /tmp/recipe.json recipe.json
 # Use cargo-chef to build dependencies from the recipe created in the first stage
 # This step will be cached unless dependencies change
-RUN --mount=type=cache,target=/convex/target/ --mount=type=cache,target=/usr/local/cargo/git/db --mount=type=cache,target=/usr/local/cargo/registry/ cargo chef cook --release --recipe-path recipe.json
+RUN cargo chef cook --release --recipe-path recipe.json
 # Now copy everything else over -- we've minimized the set of files that cause a full `rush install` or `cargo build` to run.
 COPY . .
 
@@ -79,7 +79,7 @@ ARG VERGEN_GIT_SHA
 ARG VERGEN_GIT_COMMIT_TIMESTAMP
 ENV VERGEN_GIT_SHA=${VERGEN_GIT_SHA}
 ENV VERGEN_GIT_COMMIT_TIMESTAMP=${VERGEN_GIT_COMMIT_TIMESTAMP}
-RUN --mount=type=cache,target=/convex/npm-packages/common/temp/,sharing=locked --mount=type=cache,target=/convex/target/ --mount=type=cache,target=/usr/local/cargo/git/db --mount=type=cache,target=/usr/local/cargo/registry/ <<EOF
+RUN <<EOF
 cargo build --release -p local_backend --bin convex-local-backend
 cp target/release/convex-local-backend .
 cargo build --release -p keybroker --bin generate_key
@@ -98,7 +98,7 @@ LABEL org.opencontainers.image.revision=${VERGEN_GIT_SHA}
 WORKDIR /convex
 
 # Install libraries needed for running the backend
-RUN --mount=type=cache,target=/var/cache/apt --mount=type=cache,target=/var/lib/apt,sharing=locked <<EOF
+RUN <<EOF
 apt-get update
 apt-get install -y --no-install-recommends libclang1 curl ca-certificates
 EOF
@@ -118,7 +118,7 @@ COPY --chmod=744 self-hosted/docker-build/read_credentials.sh .
 COPY --chmod=744 self-hosted/docker-build/run_backend.sh .
 COPY --chmod=744 self-hosted/docker-build/generate_admin_key.sh .
 
-VOLUME /convex/data
+#VOLUME /convex/data
 
 # Set the backend as the executable
 ENTRYPOINT ["./run_backend.sh"]

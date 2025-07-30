@@ -1,0 +1,21 @@
+{
+  "$schema": "https://railway.com/railway.schema.json",
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "self-hosted/docker-build/Dockerfile.backend"
+  },
+  "deploy": {
+    "runtime": "V2",
+    "numReplicas": 1,
+    "startCommand": "sh -c 'mkdir -p \"/convex/data/credentials\" && echo \"$INSTANCE_SECRET\" > \"/convex/data/credentials/instance_secret\" && echo \"$INSTANCE_NAME\" > \"/convex/data/credentials/instance_name\" && ([ -z \"$CONVEX_SELF_HOSTED_ADMIN_KEY\" ] || [ \"$CONVEX_SELF_HOSTED_ADMIN_KEY\" = \"invalid\" ]) && ./generate_admin_key.sh || echo \"Admin key: $CONVEX_SELF_HOSTED_ADMIN_KEY\" && exec ./run_backend.sh'",
+    "healthcheckPath": "/version",
+    "sleepApplication": true,
+    "multiRegionConfig": {
+      "us-east4-eqdc4a": {
+        "numReplicas": 1
+      }
+    },
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+  }
+}
