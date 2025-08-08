@@ -11,21 +11,28 @@ const mockClient = mockConvexReactClient()
   .registerQueryFake(udfs.components.list, () => [])
   .registerQueryFake(udfs.getTableMapping.default, () => ({}));
 
-export default {
+const meta = {
   component: ObjectEditor,
   render: (args) => (
     <ConvexProvider client={mockClient}>
       <DeploymentInfoContext.Provider value={mockDeploymentInfo}>
         <div className="h-64">
-          <ObjectEditor {...args} path="document" mode="editField" />
+          <ObjectEditor {...args} />
         </div>
       </DeploymentInfoContext.Provider>
     </ConvexProvider>
   ),
-} as Meta<typeof ObjectEditor>;
+} satisfies Meta<typeof ObjectEditor>;
 
-export const Primary: StoryObj<typeof ObjectEditor> = {
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Primary: Story = {
   args: {
     defaultValue: null,
+    onChange: () => {},
+    onError: () => {},
+    path: "document",
+    mode: "editField",
   },
 };

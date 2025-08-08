@@ -213,7 +213,7 @@ impl<'a, RT: Runtime> IndexModel<'a, RT> {
                         backfilled_index.name.descriptor()
                     )
                 },
-                DatabaseIndexState::Backfilled => {
+                DatabaseIndexState::Backfilled { .. } => {
                     *on_disk_state = DatabaseIndexState::Enabled;
                 },
             },
@@ -221,10 +221,10 @@ impl<'a, RT: Runtime> IndexModel<'a, RT> {
                 ref mut on_disk_state,
                 ..
             } => match on_disk_state {
-                TextIndexState::Backfilled(snapshot) => {
+                TextIndexState::Backfilled { snapshot, .. } => {
                     *on_disk_state = TextIndexState::SnapshottedAt(snapshot.clone());
                 },
-                TextIndexState::Backfilling(_) | TextIndexState::SnapshottedAt(_) => {
+                TextIndexState::Backfilling { .. } | TextIndexState::SnapshottedAt(_) => {
                     anyhow::bail!(
                         "Expected backfilled index, but found: {on_disk_state:?} for {:?}",
                         backfilled_index.name.descriptor()
@@ -235,7 +235,7 @@ impl<'a, RT: Runtime> IndexModel<'a, RT> {
                 ref mut on_disk_state,
                 ..
             } => match on_disk_state {
-                VectorIndexState::Backfilled(snapshot) => {
+                VectorIndexState::Backfilled { snapshot, .. } => {
                     *on_disk_state = VectorIndexState::SnapshottedAt(snapshot.clone());
                 },
                 VectorIndexState::Backfilling(_) | VectorIndexState::SnapshottedAt(_) => {
@@ -418,7 +418,7 @@ impl<'a, RT: Runtime> IndexModel<'a, RT> {
             }
 
             // Collect the search indexes.
-            for (index_descriptor, index_schema) in &table_schema.search_indexes {
+            for (index_descriptor, index_schema) in &table_schema.text_indexes {
                 let index_name = IndexName::new(table_name.clone(), index_descriptor.clone())?;
                 indexes_in_schema.push(IndexMetadata::new_backfilling_text_index(
                     index_name.clone(),

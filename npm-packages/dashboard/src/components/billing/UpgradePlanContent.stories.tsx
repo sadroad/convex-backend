@@ -18,10 +18,34 @@ const DEFAULT_FORM_STATE: UpgradeFormState = {
   spendingLimitDisableThresholdUsd: null,
 };
 
-export default {
+const meta = {
   component: UpgradePlanContent,
   render: (args) => render(args, DEFAULT_FORM_STATE),
-} as Meta<typeof UpgradePlanContent>;
+  args: {
+    plan: {
+      name: "Professional",
+      id: "CONVEX_PROFESSIONAL",
+      description: "The professional plan.",
+      status: "active",
+      seatPrice: 25,
+      planType: "CONVEX_PROFESSIONAL",
+    },
+    isChef: false,
+    numMembers: 2,
+    paymentDetailsForm: (
+      <Callout className="w-fit">
+        STRIPE PAYMENT DETAILS FORM WOULD BE HERE!
+      </Callout>
+    ),
+    setPaymentMethod: () => {},
+    billingAddressInputs: (
+      <Callout className="w-fit">Billing address inputs would be here</Callout>
+    ),
+  },
+} satisfies Meta<typeof UpgradePlanContent>;
+
+export default meta;
+type Story = StoryObj<typeof meta>;
 
 function render(args: UpgradePlanContentProps, formState: UpgradeFormState) {
   return (
@@ -31,30 +55,13 @@ function render(args: UpgradePlanContentProps, formState: UpgradeFormState) {
         to see different states.
       </Callout>
       <Formik initialValues={formState} onSubmit={() => {}}>
-        <UpgradePlanContent
-          {...args}
-          plan={{
-            name: "Professional",
-            id: "CONVEX_PROFESSIONAL",
-            description: "The professional plan.",
-            status: "active",
-            seatPrice: 25,
-            planType: "CONVEX_PROFESSIONAL",
-          }}
-          isChef={false}
-          numMembers={2}
-          paymentDetailsForm={
-            <Callout className="w-fit">
-              STRIPE PAYMENT DETAILS FORM WOULD BE HERE!
-            </Callout>
-          }
-        />
+        <UpgradePlanContent {...args} />
       </Formik>
     </Sheet>
   );
 }
 
-export const NoPaymentMethod: StoryObj<typeof UpgradePlanContent> = {
+export const NoPaymentMethod: Story = {
   args: {},
   render: (args) =>
     render(args, {
@@ -63,24 +70,24 @@ export const NoPaymentMethod: StoryObj<typeof UpgradePlanContent> = {
     }),
 };
 
-export const HasPaymentMethod: StoryObj<typeof UpgradePlanContent> = {
+export const HasPaymentMethod: Story = {
   args: {},
 };
 
-export const WithDiscount: StoryObj<typeof UpgradePlanContent> = {
+export const WithDiscount: Story = {
   args: {
     teamMemberDiscountPct: 0.5,
   },
 };
 
-export const WithPhasedDiscount: StoryObj<typeof UpgradePlanContent> = {
+export const WithPhasedDiscount: Story = {
   args: {
     teamMemberDiscountPct: 0.5,
     couponDurationInMonths: 2,
   },
 };
 
-export const WithFreeDiscount: StoryObj<typeof UpgradePlanContent> = {
+export const WithFreeDiscount: Story = {
   args: {
     teamMemberDiscountPct: 1,
   },
@@ -100,7 +107,7 @@ export const WithFreeDiscountAndNoPaymentMethod: StoryObj<
   },
 };
 
-export const LoadingPromo: StoryObj<typeof UpgradePlanContent> = {
+export const LoadingPromo: Story = {
   render: (args) =>
     render(args, {
       ...DEFAULT_FORM_STATE,
@@ -112,7 +119,7 @@ export const LoadingPromo: StoryObj<typeof UpgradePlanContent> = {
   },
 };
 
-export const InvalidPromo: StoryObj<typeof UpgradePlanContent> = {
+export const InvalidPromo: Story = {
   render: (args) =>
     render(args, {
       ...DEFAULT_FORM_STATE,

@@ -1,5 +1,6 @@
 import { Command, Option } from "@commander-js/extra-typings";
-import { logVerbose, oneoffContext } from "../bundler/context.js";
+import { oneoffContext } from "../bundler/context.js";
+import { logVerbose } from "../bundler/log.js";
 import { deploymentCredentialsOrConfigure } from "./configure.js";
 import { usageStateWarning } from "./lib/usage.js";
 import { normalizeDevOptions } from "./lib/command.js";
@@ -161,7 +162,7 @@ Same format as .env.local or .env files, and overrides them.`,
   .action(async (cmdOptions) => {
     const ctx = await oneoffContext(cmdOptions);
     process.on("SIGINT", async () => {
-      logVerbose(ctx, "Received SIGINT, cleaning up...");
+      logVerbose("Received SIGINT, cleaning up...");
       await ctx.flushAndExit(-2);
     });
 

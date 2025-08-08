@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import { Sheet } from "@ui/Sheet";
 import { ConfirmationDialog } from "@ui/ConfirmationDialog";
 import { UserProfile } from "@auth0/nextjs-auth0/client";
-import { AuthIdentity } from "generatedApi";
+import { AuthIdentityResponse } from "generatedApi";
 import { LoadingTransition } from "@ui/Loading";
 import GoogleLogo from "logos/google.svg";
 import GithubLogo from "logos/github-logo.svg";
@@ -95,11 +95,7 @@ export function ConnectedIdentities() {
           <div className="flex w-full flex-col gap-4">
             <div className="flex flex-col">
               {identities?.map((identity) => {
-                // user.sub is like "provider|id"; we want everything after provider|
-                const primaryId = user?.sub?.substring(
-                  user.sub.indexOf("|") + 1,
-                );
-                const isPrimary = identity.userId === primaryId;
+                const { isPrimary } = identity;
                 return (
                   <div
                     key={identity.userId}
@@ -266,7 +262,7 @@ export function IdentityDisplayName({
   isPrimary,
 }: {
   user: UserProfile;
-  identity: AuthIdentity;
+  identity: AuthIdentityResponse;
   isPrimary: boolean;
 }) {
   let main: string | undefined;
@@ -301,7 +297,7 @@ export function IdentityDisplayName({
     main = userId;
   }
 
-  return <p className="max-w-full truncate">{main}</p>;
+  return <p className="max-w-full truncate">{main || userId}</p>;
 }
 
 function ProviderLogo({

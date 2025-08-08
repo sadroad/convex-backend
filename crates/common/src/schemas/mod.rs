@@ -169,8 +169,11 @@ macro_rules! db_schema {
                     let table_def = $crate::schemas::TableDefinition {
                         table_name: table_name.clone(),
                         indexes: Default::default(),
-                        search_indexes: Default::default(),
+                        staged_db_indexes: Default::default(),
+                        text_indexes: Default::default(),
+                        staged_text_indexes: Default::default(),
                         vector_indexes: Default::default(),
+                        staged_vector_indexes: Default::default(),
                         document_type: Some($document_schema),
                     };
                     tables.insert(table_name, table_def);
@@ -200,8 +203,11 @@ macro_rules! db_schema_not_validated {
                     let table_def = $crate::schemas::TableDefinition {
                         table_name: table_name.clone(),
                         indexes: Default::default(),
-                        search_indexes: Default::default(),
+                        staged_db_indexes: Default::default(),
+                        text_indexes: Default::default(),
+                        staged_text_indexes: Default::default(),
                         vector_indexes: Default::default(),
+                        staged_vector_indexes: Default::default(),
                         document_type: Some($document_schema),
                     };
                     tables.insert(table_name, table_def);
@@ -253,8 +259,11 @@ macro_rules! db_schema_with_vector_indexes {
                     let table_def = $crate::schemas::TableDefinition {
                         table_name: table_name.clone(),
                         indexes: Default::default(),
-                        search_indexes: Default::default(),
+                        staged_db_indexes: Default::default(),
+                        text_indexes: Default::default(),
+                        staged_text_indexes: Default::default(),
                         vector_indexes,
+                        staged_vector_indexes: Default::default(),
                         document_type: Some($document_schema),
                     };
                     tables.insert(table_name, table_def);
@@ -543,8 +552,11 @@ impl proptest::arbitrary::Arbitrary for DatabaseSchema {
 pub struct TableDefinition {
     pub table_name: TableName,
     pub indexes: BTreeMap<IndexDescriptor, IndexSchema>,
-    pub search_indexes: BTreeMap<IndexDescriptor, SearchIndexSchema>,
+    pub staged_db_indexes: BTreeMap<IndexDescriptor, IndexSchema>,
+    pub text_indexes: BTreeMap<IndexDescriptor, TextIndexSchema>,
+    pub staged_text_indexes: BTreeMap<IndexDescriptor, TextIndexSchema>,
     pub vector_indexes: BTreeMap<IndexDescriptor, VectorIndexSchema>,
+    pub staged_vector_indexes: BTreeMap<IndexDescriptor, VectorIndexSchema>,
     pub document_type: Option<DocumentSchema>, /* FIXME: `Option` could be removed here, since
                                                 * `None` is handled the same way as
                                                 * `Some(DocumentSchema::Any)`. */
@@ -557,6 +569,7 @@ impl TableDefinition {
         let index_fields = self
             .indexes
             .iter()
+            .chain(self.staged_db_indexes.iter())
             .flat_map(|(index_descriptor, index_schema)| {
                 index_schema
                     .fields
@@ -564,34 +577,37 @@ impl TableDefinition {
                     .map(move |field_path| (index_descriptor, field_path))
             });
 
-        let search_index_fields =
-            self.search_indexes
-                .iter()
-                .map(|(index_descriptor, search_index_schema)| {
-                    (index_descriptor, (&search_index_schema.search_field))
-                });
+        let text_index_fields = self
+            .text_indexes
+            .iter()
+            .chain(self.staged_text_indexes.iter())
+            .map(|(index_descriptor, search_index_schema)| {
+                (index_descriptor, (&search_index_schema.search_field))
+            });
 
-        let search_index_filter_fields =
-            self.search_indexes
-                .iter()
-                .flat_map(|(index_descriptor, search_index_schema)| {
-                    search_index_schema
-                        .filter_fields
-                        .iter()
-                        .map(move |field_path| (index_descriptor, field_path))
-                });
+        let text_index_filter_fields = self
+            .text_indexes
+            .iter()
+            .chain(self.staged_text_indexes.iter())
+            .flat_map(|(index_descriptor, search_index_schema)| {
+                search_index_schema
+                    .filter_fields
+                    .iter()
+                    .map(move |field_path| (index_descriptor, field_path))
+            });
 
         let vector_index_fields = self.vector_fields();
 
         index_fields
-            .chain(search_index_fields)
-            .chain(search_index_filter_fields)
+            .chain(text_index_fields)
+            .chain(text_index_filter_fields)
             .chain(vector_index_fields)
     }
 
     pub fn vector_fields(&self) -> impl Iterator<Item = (&IndexDescriptor, &FieldPath)> {
         self.vector_indexes
             .iter()
+            .chain(self.staged_vector_indexes.iter())
             .map(|(index_descriptor, vector_index_schema)| {
                 (index_descriptor, (&vector_index_schema.vector_field))
             })
@@ -609,7 +625,10 @@ impl proptest::arbitrary::Arbitrary for TableDefinition {
 
         (
             prop::collection::vec(any::<IndexSchema>(), 0..6),
-            prop::collection::vec(any::<SearchIndexSchema>(), 0..3),
+            prop::collection::vec(any::<IndexSchema>(), 0..6),
+            prop::collection::vec(any::<TextIndexSchema>(), 0..3),
+            prop::collection::vec(any::<TextIndexSchema>(), 0..3),
+            prop::collection::vec(any::<VectorIndexSchema>(), 0..3),
             prop::collection::vec(any::<VectorIndexSchema>(), 0..3),
             any_with::<Option<DocumentSchema>>((
                 prop::option::Probability::default(),
@@ -618,14 +637,30 @@ impl proptest::arbitrary::Arbitrary for TableDefinition {
         )
             .prop_filter_map(
                 "index names must be unique",
-                move |(indexes, search_indexes, vector_indexes, document_type)| {
+                move |(
+                    indexes,
+                    staged_db_indexes,
+                    search_indexes,
+                    staged_search_indexes,
+                    vector_indexes,
+                    staged_vector_indexes,
+                    document_type,
+                )| {
                     let index_descriptors: BTreeSet<_> = indexes
                         .iter()
                         .map(|i| &i.index_descriptor)
+                        .chain(staged_db_indexes.iter().map(|i| &i.index_descriptor))
                         .chain(search_indexes.iter().map(|i| &i.index_descriptor))
+                        .chain(staged_search_indexes.iter().map(|i| &i.index_descriptor))
                         .chain(vector_indexes.iter().map(|i| &i.index_descriptor))
+                        .chain(staged_vector_indexes.iter().map(|i| &i.index_descriptor))
                         .collect();
-                    let expected = indexes.len() + search_indexes.len() + vector_indexes.len();
+                    let expected = indexes.len()
+                        + staged_db_indexes.len()
+                        + search_indexes.len()
+                        + staged_search_indexes.len()
+                        + vector_indexes.len()
+                        + staged_vector_indexes.len();
                     assert!(index_descriptors.len() <= expected);
                     if index_descriptors.len() == expected {
                         Some(Self {
@@ -634,11 +669,23 @@ impl proptest::arbitrary::Arbitrary for TableDefinition {
                                 .into_iter()
                                 .map(|i| (i.index_descriptor.clone(), i))
                                 .collect(),
-                            search_indexes: search_indexes
+                            staged_db_indexes: staged_db_indexes
+                                .into_iter()
+                                .map(|i| (i.index_descriptor.clone(), i))
+                                .collect(),
+                            text_indexes: search_indexes
+                                .into_iter()
+                                .map(|i| (i.index_descriptor.clone(), i))
+                                .collect(),
+                            staged_text_indexes: staged_search_indexes
                                 .into_iter()
                                 .map(|i| (i.index_descriptor.clone(), i))
                                 .collect(),
                             vector_indexes: vector_indexes
+                                .into_iter()
+                                .map(|i| (i.index_descriptor.clone(), i))
+                                .collect(),
+                            staged_vector_indexes: staged_vector_indexes
                                 .into_iter()
                                 .map(|i| (i.index_descriptor.clone(), i))
                                 .collect(),
@@ -667,7 +714,7 @@ impl Display for IndexSchema {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(any(test, feature = "testing"), derive(proptest_derive::Arbitrary))]
-pub struct SearchIndexSchema {
+pub struct TextIndexSchema {
     pub index_descriptor: IndexDescriptor,
     pub search_field: FieldPath,
     #[cfg_attr(
@@ -680,7 +727,7 @@ pub struct SearchIndexSchema {
     _pd: PhantomData<()>,
 }
 
-impl SearchIndexSchema {
+impl TextIndexSchema {
     pub fn new(
         index_descriptor: IndexDescriptor,
         search_field: FieldPath,

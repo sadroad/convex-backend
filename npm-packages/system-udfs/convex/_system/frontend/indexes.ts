@@ -8,7 +8,7 @@ async function getTableId(
   db: GenericDatabaseReader<DataModel>,
   tableName: string,
   tableNamespace: string | null,
-): Promise<string> {
+): Promise<string | undefined> {
   // Get the table id for the tablename
   const tablesWithName = await db
     .query("_tables")
@@ -21,9 +21,7 @@ async function getTableId(
       (table) => table.namespace === undefined,
     );
     if (tables.length !== 1) {
-      throw new Error(
-        "Table not found for tableName" + tableName + " in the root namespace ",
-      );
+      return undefined;
     }
     tableId = tables[0]._id;
   } else {
@@ -31,12 +29,7 @@ async function getTableId(
       (table) => table.namespace && table.namespace.id === tableNamespace,
     );
     if (tables.length !== 1) {
-      throw new Error(
-        "Table not found for tableName" +
-          tableName +
-          " in the componentId " +
-          tableNamespace,
-      );
+      return undefined;
     }
     tableId = tables[0]._id;
   }
@@ -62,6 +55,9 @@ export default queryPrivateSystem({
       return undefined;
     }
     const tableId = await getTableId(db, tableName, tableNamespace);
+    if (!tableId) {
+      return undefined;
+    }
     const indexes = await db
       .query("_index")
       .withIndex("by_id", (q) => q)
@@ -74,18 +70,18 @@ export default queryPrivateSystem({
     return Promise.all(
       userIndexes.map(async (index) => {
         // TODO: Return backfilled state for asynchronous index progress instead of representing backfilled as in_progress
-        function getIndexFieldsAndState(config: typeof index.config): [
-          (
+        function getIndexFieldsAndState(config: typeof index.config): {
+          fields:
             | string[]
             | { searchField: string; filterFields: string[] }
             | {
                 vectorField: string;
                 filterFields: string[];
                 dimensions: number;
-              }
-          ),
-          "in_progress" | "done",
-        ] {
+              };
+          state: "in_progress" | "done";
+          staged: boolean;
+        } {
           switch (config.type) {
             case "database": {
               const stateType = config.onDiskState.type;
@@ -93,7 +89,18 @@ export default queryPrivateSystem({
                 stateType === "Backfilling" || stateType === "Backfilled2"
                   ? ("in_progress" as const)
                   : ("done" as const);
-              return [config.fields, state];
+              let staged;
+              switch (stateType) {
+                case "Backfilling":
+                  staged = config.onDiskState.backfillState.staged ?? false;
+                  break;
+                case "Backfilled2":
+                  staged = config.onDiskState.staged ?? false;
+                  break;
+                default:
+                  staged = false;
+              }
+              return { fields: config.fields, state, staged };
             }
             case "search": {
               const stateType = config.onDiskState.state;
@@ -107,22 +114,41 @@ export default queryPrivateSystem({
                 searchField: config.searchField,
                 filterFields: config.filterFields,
               };
-              return [fields, state];
+              const staged =
+                stateType === "backfilling" ||
+                stateType === "backfilling2" ||
+                stateType === "backfilled2"
+                  ? (config.onDiskState.staged ?? false)
+                  : false;
+              return {
+                fields,
+                state,
+                staged,
+              };
             }
             case "vector": {
               const stateType = config.onDiskState.state;
               const state =
-                stateType === "backfilling" || stateType === "backfilled"
+                stateType === "backfilling" ||
+                stateType === "backfilled" ||
+                stateType === "backfilled2"
                   ? ("in_progress" as const)
                   : ("done" as const);
-              return [
-                {
+              const staged =
+                stateType === "backfilling" ||
+                stateType === "backfilled" ||
+                stateType === "backfilled2"
+                  ? (config.onDiskState.staged ?? false)
+                  : false;
+              return {
+                fields: {
                   vectorField: config.vectorField,
                   filterFields: config.filterFields,
                   dimensions: Number(config.dimensions),
                 },
                 state,
-              ];
+                staged,
+              };
             }
             default: {
               const _typecheck: never = config;
@@ -131,7 +157,7 @@ export default queryPrivateSystem({
           }
         }
 
-        const [fields, state] = getIndexFieldsAndState(index.config);
+        const { fields, state, staged } = getIndexFieldsAndState(index.config);
         if (state === "in_progress") {
           const indexBackfill = await db
             .query("_index_backfills")
@@ -147,12 +173,14 @@ export default queryPrivateSystem({
             : undefined;
           return {
             name: index.descriptor,
+            staged,
             fields,
             backfill: { state, stats: stats },
           };
         }
         return {
           name: index.descriptor,
+          staged,
           fields,
           backfill: { state },
         };

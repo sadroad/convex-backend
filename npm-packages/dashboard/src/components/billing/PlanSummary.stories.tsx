@@ -1,11 +1,14 @@
 import { Meta, StoryObj } from "@storybook/nextjs";
 import { PlanSummaryForTeam } from "./PlanSummary";
 
-export default {
+const meta = {
   component: PlanSummaryForTeam,
-} as Meta<typeof PlanSummaryForTeam>;
+} satisfies Meta<typeof PlanSummaryForTeam>;
 
-export const Primary: StoryObj<typeof PlanSummaryForTeam> = {
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Primary: Story = {
   args: {
     hasSubscription: true,
     showEntitlements: true,
@@ -28,7 +31,7 @@ export const Primary: StoryObj<typeof PlanSummaryForTeam> = {
       teamMaxActionCompute: 20,
       teamMaxVectorBandwidth: 512 * 1024 * 1024,
       teamMaxVectorStorage: 256 * 1024 * 1024,
-      maxTeamMembers: 20,
+      maxTeamMembers: 50000,
       logStreamingEnabled: true,
       auditLogsEnabled: true,
       customDomainsEnabled: true,
@@ -39,5 +42,6 @@ export const Primary: StoryObj<typeof PlanSummaryForTeam> = {
       projectMaxPreviewDeployments: 10,
       maxChefTokens: 8500000,
     },
+    hasFilter: false,
   },
 };

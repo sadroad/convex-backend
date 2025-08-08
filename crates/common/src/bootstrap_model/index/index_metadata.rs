@@ -74,6 +74,7 @@ impl<T: IndexTableIdentifier> IndexMetadata<T> {
                 on_disk_state: DatabaseIndexState::Backfilling(DatabaseIndexBackfillState {
                     index_created_lower_bound,
                     retention_started: false,
+                    staged: false,
                 }),
             },
         }
@@ -90,7 +91,7 @@ impl<T: IndexTableIdentifier> IndexMetadata<T> {
                 search_field,
                 filter_fields,
             },
-            TextIndexState::Backfilling(TextIndexBackfillState::new()),
+            TextIndexState::Backfilling(TextIndexBackfillState::new(false)),
         )
     }
 
@@ -112,6 +113,7 @@ impl<T: IndexTableIdentifier> IndexMetadata<T> {
                     segments: vec![],
                     cursor: None,
                     backfill_snapshot_ts: None,
+                    staged: false,
                 }),
             },
         }

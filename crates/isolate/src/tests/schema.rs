@@ -10,8 +10,8 @@ use common::{
         DatabaseSchema,
         DocumentSchema,
         IndexSchema,
-        SearchIndexSchema,
         TableDefinition,
+        TextIndexSchema,
     },
     types::{
         IndexDescriptor,
@@ -248,8 +248,11 @@ async fn test_eval_schema(rt: TestRuntime) -> anyhow::Result<()> {
             name1.clone() => TableDefinition {
                 table_name: name1,
                 indexes: btreemap!(),
-                search_indexes: btreemap!(),
+                staged_db_indexes: btreemap!(),
+                text_indexes: btreemap!(),
+                staged_text_indexes: btreemap!(),
                 vector_indexes: btreemap!(),
+                staged_vector_indexes: btreemap!(),
                 document_type: Some(DocumentSchema::Union(vec![
                   object_validator!(
                     "ref" => FieldValidator::required_field_type(Validator::Id("twoIndexTable".parse()?)),
@@ -284,22 +287,29 @@ async fn test_eval_schema(rt: TestRuntime) -> anyhow::Result<()> {
                         fields: vec!["creation".parse()?, "deleted".parse()?].try_into()?,
                     },
                 ),
-                search_indexes: btreemap!(),
+                staged_db_indexes: btreemap!(),
+                text_indexes: btreemap!(),
+                staged_text_indexes: btreemap!(),
                 vector_indexes: btreemap!(),
+                staged_vector_indexes: btreemap!(),
                 document_type: None,
             },
             name3.clone() => TableDefinition {
               table_name: name3,
               indexes: btreemap!(),
-              search_indexes: btreemap! {
-                search_index.clone() => SearchIndexSchema::new(
+              staged_db_indexes: btreemap!(),
+              text_indexes: btreemap! {
+                search_index.clone() => TextIndexSchema::new(
                   search_index,
                   "title".parse()?,
                   btreeset!{"is_deleted".parse()?, "workspace_id".parse()?}
                 )?
                },
+               staged_text_indexes: btreemap!(),
                vector_indexes: btreemap!(),
+               staged_vector_indexes: btreemap!(),
                document_type: None,
+
           }
         ),
         schema_validation: true,

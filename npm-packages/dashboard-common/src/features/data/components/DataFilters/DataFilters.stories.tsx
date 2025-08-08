@@ -22,10 +22,13 @@ const mockClient = mockConvexReactClient()
     ({ tableName: _tableName, tableNamespace: _tableNamespace }) => [],
   );
 
-export default {
+const meta = {
   component: DataFilters,
   render: (args) => <Example {...args} />,
-} as Meta<typeof DataFilters>;
+} satisfies Meta<typeof DataFilters>;
+
+export default meta;
+type Story = StoryObj<typeof meta>;
 
 function Example(args: ComponentProps<typeof DataFilters>) {
   const connectedDeployment = useMemo(
@@ -36,21 +39,30 @@ function Example(args: ComponentProps<typeof DataFilters>) {
     <ConnectedDeploymentContext.Provider value={connectedDeployment}>
       <ConvexProvider client={mockClient}>
         <DeploymentInfoContext.Provider value={mockDeploymentInfo}>
-          <DataFilters
-            {...args}
-            filters={{ clauses: [] }}
-            // eslint-disable-next-line no-alert
-            onFiltersChange={() => alert("Filters applied!")}
-          />
+          <DataFilters {...args} />
         </DeploymentInfoContext.Provider>
       </ConvexProvider>
     </ConnectedDeploymentContext.Provider>
   );
 }
 
-export const Default: StoryObj<typeof DataFilters> = {
+export const Default: Story = {
   args: {
     tableName: "myTable",
     defaultDocument: { myColumn: 0 },
+    filters: { clauses: [] },
+    onFiltersChange: () => {
+      // eslint-disable-next-line no-alert
+      alert("Filters applied");
+    },
+    setDraftFilters: () => {},
+    setShowFilters: () => {},
+    tableFields: ["myColumn"],
+    componentId: "myComponent",
+    activeSchema: null,
+    numRows: 0,
+    numRowsLoaded: 0,
+    hasFilters: true,
+    showFilters: true,
   },
 };

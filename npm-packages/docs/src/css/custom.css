@@ -890,6 +890,9 @@ html[data-theme="dark"] .convex-menu-header {
 .convex-sidebar-ai-agents {
   --convex-icon: url("../../static/img/sidebar-icons/bot.svg");
 }
+.convex-sidebar-platform-apis {
+  --convex-icon: url("../../static/img/sidebar-icons/grid.svg");
+}
 
 .convex-sidebar-chef {
   --convex-icon: url("../../static/img/sidebar-icons/chef.svg");
@@ -1312,14 +1315,26 @@ h2.zen-header {
   margin: 0 auto;
 }
 
-/* Fix pages should not be too wide, except for all the quick starts */
-html:not([class*="docs-doc-id-quickstart/"]) main > .container > .row .col {
+/* Fix pages should not be too wide, except for all the quick starts and management API docs */
+html:not([class*="docs-doc-id-quickstart/"]):not(
+    [class*="docs-doc-id-management-api/"]
+  )
+  main
+  > .container
+  > .row
+  .col {
   max-width: 800px !important;
   margin: 0 auto;
 }
 
 @media (min-width: 997px) {
-  html:not([class*="docs-doc-id-quickstart/"]) main > .container > .row .col {
+  html:not([class*="docs-doc-id-quickstart/"]):not(
+      [class*="docs-doc-id-management-api/"]
+    )
+    main
+    > .container
+    > .row
+    .col {
     margin: unset;
   }
 }
@@ -1595,4 +1610,26 @@ a.video-card h2 {
   font-family: var(--ifm-font-family-base);
   letter-spacing: normal;
   max-height: 2.4em;
+}
+
+/* Hack to hide additional Bearer token headers in OpenAPI endpoints */
+.openapi-explorer__details-container:nth-child(2)
+  > div
+  > .openapi-explorer__form-item:nth-child(2) {
+  display: none;
+}
+.openapi-explorer__details-container:nth-child(2)
+  > div
+  > .openapi-explorer__form-item:nth-child(3) {
+  display: none;
+}
+.openapi-explorer__details-container:nth-child(2)
+  > div
+  > .openapi-explorer__form-item:nth-child(4) {
+  display: none;
+}
+.openapi-explorer__details-container:nth-child(2)
+  > div
+  > .openapi-explorer__form-item:nth-child(5) {
+  display: none;
 }

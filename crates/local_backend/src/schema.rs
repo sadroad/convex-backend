@@ -70,33 +70,6 @@ use crate::{
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct BuildIndexesResponse {
-    added: Vec<IndexMetadataResponse>,
-    dropped: Vec<IndexMetadataResponse>,
-}
-
-impl TryFrom<LegacyIndexDiff> for BuildIndexesResponse {
-    type Error = anyhow::Error;
-
-    fn try_from(diff: LegacyIndexDiff) -> anyhow::Result<Self> {
-        Ok(BuildIndexesResponse {
-            added: diff
-                .added
-                .into_iter()
-                .map(IndexMetadataResponse::try_from)
-                .try_collect()?,
-            dropped: diff
-                .dropped
-                .into_iter()
-                .map(|doc| doc.into_value())
-                .map(IndexMetadataResponse::try_from)
-                .try_collect()?,
-        })
-    }
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
 struct BackfillResponse {
     state: String,
 }
@@ -130,7 +103,7 @@ impl TryFrom<IndexMetadata<TableName>> for IndexMetadataResponse {
                     // might consider a new value that would let us
                     // differentiate between Backfilled and Enabled in the
                     // dashboard. The CLI doesn't currently care.
-                    DatabaseIndexState::Enabled | DatabaseIndexState::Backfilled => {
+                    DatabaseIndexState::Enabled | DatabaseIndexState::Backfilled { .. } => {
                         "done".to_string()
                     },
                 };
@@ -158,7 +131,7 @@ impl TryFrom<IndexMetadata<TableName>> for IndexMetadataResponse {
                     // also for display in the dashboard. We might consider a new value that would
                     // let us differentiate between Backfilled and SnapshottedAt in the dashboard.
                     // The CLI doesn't currently care.
-                    TextIndexState::SnapshottedAt(_) | TextIndexState::Backfilled(_) => {
+                    TextIndexState::SnapshottedAt(_) | TextIndexState::Backfilled { .. } => {
                         "done".to_string()
                     },
                 };
@@ -185,7 +158,7 @@ impl TryFrom<IndexMetadata<TableName>> for IndexMetadataResponse {
             } => {
                 let backfill_state = match on_disk_state {
                     VectorIndexState::Backfilling(_) => "in_progress".to_string(),
-                    VectorIndexState::Backfilled(_) | VectorIndexState::SnapshottedAt(_) => {
+                    VectorIndexState::Backfilled { .. } | VectorIndexState::SnapshottedAt(_) => {
                         "done".to_string()
                     },
                 };
